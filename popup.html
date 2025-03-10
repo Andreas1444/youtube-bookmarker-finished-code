@@ -1,10 +1,233 @@
-<link href="popup.css" rel="stylesheet" type="text/css" />
-<script type="module" src="popup.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phishing Detector</title>
+    <style>
+        body {
+            width: 400px;
+            margin: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(to bottom right, #0f172a, #1e293b);
+            color: white;
+            padding: 1.5rem;
+        }
 
-<div class="container">
-  <div>
-    <div class="title">Your bookmarks for this video</div>
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
 
-    <div class="bookmarks" id="bookmarks"></div>
-  </div>
-</div>
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        #scan-result {
+            background-color: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(8px);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+
+        #status {
+            background-color: rgba(234, 179, 8, 0.2);
+            color: rgb(253, 224, 71);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric-card {
+            background-color: rgba(15, 23, 42, 0.5);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        .metric-card img {
+            width: 24px;  
+            height: 24px;
+            margin-right: 10px;
+            filter: invert(50%) sepia(100%) saturate(500%) hue-rotate(120deg);
+        }
+        .metric-label {
+            color: rgb(148, 163, 184);
+            font-size: 0.875rem;
+        }
+
+
+        #text-content,
+        #ssl-valid,
+        #form-details,
+        #total-links,
+        #external-links {
+            font-weight: 500;
+        }
+
+        .progress-container {
+            background-color: rgba(15, 23, 42, 0.5);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .progress-container h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1rem;
+            color: rgb(148, 163, 184);
+        }
+
+        .progress-bar {
+            height: 0.75rem;
+            background-color: rgba(51, 65, 85, 0.5);
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        
+        .text-icon {
+            display: flex;
+            align-items: center;
+        }
+        .form-info {
+            text-align: right;
+            position: relative;
+        }
+        .form-info img {
+            position: absolute;
+            bottom: 0px; 
+            right: 0px;
+
+        }
+
+        .form-info :hover {
+            filter: invert(35%) sepia(100%) saturate(500%) hue-rotate(120deg);
+        }
+        .form-info::after {
+            content: "Sensitive data required";  
+            position: relative;
+            background-color: black;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .form-info:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+        #progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+            background: linear-gradient(to right, #4ade80, #facc15, #f87171);
+        }
+
+        #progress-bar-fill2 {
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+            background: linear-gradient(to right, #4ade80, #facc15, #f87171);
+        }
+
+        #probability-text {
+            text-align: right;
+            font-size: 0.875rem;
+            color: rgb(148, 163, 184);
+            margin: 0;
+        }
+        #url-probability-text {
+            text-align: right;
+            font-size: 0.875rem;
+            color: rgb(148, 163, 184);
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #60a5fa"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+        <h1>Phishing Detector</h1>
+    </div>
+
+    <div id="status">Loading...</div>
+    
+    <div id="scan-result">
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="text-icon">
+                <img src ="assets/textContent.svg"/>
+                <div class="metric-label">Text Content:</div> 
+                </div>
+                <div id="text-content">N/A</div>
+            </div>
+            <div class="metric-card">
+                <div class="text-icon">
+                    <img src ="assets/lock.svg"/> 
+                    <div class="metric-label">SSL Valid:</div>
+                </div>  
+                <div id="ssl-valid">N/A</div>
+            </div>
+            <div class="metric-card">
+                <div class="text-icon">
+                <img src ="assets/form_details.svg"/>
+                <div class="metric-label">Form Details:</div>
+                <div class="form-info" ><img src ="assets/icon-info.svg"/></div>
+                </div>
+                <div id="form-details-credit-card">N/A</div>
+                <div id="form-details-password">N/A</div>
+            </div>
+            <div class="metric-card">
+                <div class="text-icon">
+                <img src ="assets/links.svg"/>
+                <div class="metric-label">Total Links:</div>
+                </div>
+                <div id="total-links">N/A</div>
+            </div>
+            <div class="metric-card">
+                <div class="text-icon"> 
+                <img src ="assets/externallinks.svg"/>
+                <div class="metric-label">External Links:</div>
+                </div>
+                <div id="external-links">N/A</div>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <h3>Phishing Probability</h3>
+            <div class="progress-bar">
+                <div id="progress-bar-fill"></div>
+            </div>
+            <p id="probability-text">0%</p>
+        </div>
+
+        <div class="progress-container">
+            <h3>Suspicios URL Probability</h3>
+            <div class="progress-bar">
+                <div id="progress-bar-fill2"></div>
+            </div>
+            <p id="url-probability-text">0%</p>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
